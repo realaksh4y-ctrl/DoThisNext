@@ -70,11 +70,49 @@ function findElement(selectors) {
 }
 
 
+function findPlayerElement(selectors) {
+
+    const roots = [document];
+
+    while (roots.length > 0) {
+
+        const root = roots.shift();
+
+        for (const selector of selectors) {
+            const element = root.querySelector(selector);
+
+            if (element) {
+                return element;
+            }
+        }
+
+        root.querySelectorAll("*").forEach(function(element) {
+            if (element.shadowRoot) {
+                roots.push(element.shadowRoot);
+            }
+        });
+
+    }
+
+    return null;
+
+}
+
+
+let cachedAudio = null;
+
+
 function getAudio() {
 
-    return document.querySelector(
-        "audio"
-    );
+    if (cachedAudio && cachedAudio.isConnected) {
+        return cachedAudio;
+    }
+
+    cachedAudio =
+        document.querySelector("audio") ||
+        findPlayerElement(["audio"]);
+
+    return cachedAudio;
 
 }
 
@@ -444,13 +482,23 @@ function togglePlayPause() {
 function nextTrack() {
 
     const button =
-        findElement([
+        findPlayerElement([
+
+            "ytmusic-player-bar #next-button",
+
+            "#next-button",
 
             "ytmusic-player-bar .next-button",
 
             "ytmusic-player-bar tp-yt-paper-icon-button.next-button",
 
-            ".next-button"
+            ".next-button",
+
+            'ytmusic-player-bar [aria-label*="Next" i]',
+
+            '[aria-label*="Next" i]',
+
+            '[title*="Next" i]'
 
         ]);
 
@@ -459,22 +507,11 @@ function nextTrack() {
 
         button.click();
 
-        return;
+        return true;
 
     }
 
-
-    const fallback =
-        document.querySelector(
-            '[aria-label*="Next"]'
-        );
-
-
-    if (fallback) {
-
-        fallback.click();
-
-    }
+    return false;
 
 }
 
@@ -486,13 +523,23 @@ function nextTrack() {
 function previousTrack() {
 
     const button =
-        findElement([
+        findPlayerElement([
+
+            "ytmusic-player-bar #previous-button",
+
+            "#previous-button",
 
             "ytmusic-player-bar .previous-button",
 
             "ytmusic-player-bar tp-yt-paper-icon-button.previous-button",
 
-            ".previous-button"
+            ".previous-button",
+
+            'ytmusic-player-bar [aria-label*="Previous" i]',
+
+            '[aria-label*="Previous" i]',
+
+            '[title*="Previous" i]'
 
         ]);
 
@@ -501,22 +548,11 @@ function previousTrack() {
 
         button.click();
 
-        return;
+        return true;
 
     }
 
-
-    const fallback =
-        document.querySelector(
-            '[aria-label*="Previous"]'
-        );
-
-
-    if (fallback) {
-
-        fallback.click();
-
-    }
+    return false;
 
 }
 
@@ -607,7 +643,13 @@ ipcRenderer.on(
             "next"
         ) {
 
-            nextTrack();
+            sendToWidget(
+                "command-result",
+                {
+                    command: command.type,
+                    success: nextTrack()
+                }
+            );
 
         }
 
@@ -617,7 +659,13 @@ ipcRenderer.on(
             "previous"
         ) {
 
-            previousTrack();
+            sendToWidget(
+                "command-result",
+                {
+                    command: command.type,
+                    success: previousTrack()
+                }
+            );
 
         }
 

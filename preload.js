@@ -34,6 +34,18 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
     saveTasks: (tasks) => {
         return ipcRenderer.invoke("save-tasks", tasks);
+    },
+
+    getWindowMode: () => {
+        return ipcRenderer.invoke("get-window-mode");
+    },
+
+    setWindowMode: (mode) => {
+        return ipcRenderer.invoke("set-window-mode", mode);
+    },
+
+    setMiniWidget: (enabled) => {
+        return ipcRenderer.invoke("set-mini-widget", enabled);
     }
 
 });

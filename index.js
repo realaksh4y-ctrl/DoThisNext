@@ -17,9 +17,6 @@ const { pathToFileURL } = require("url");
 const NORMAL_WIDTH = 520;
 const NORMAL_HEIGHT = 800;
 
-const EXPANDED_WIDTH = 720;
-const EXPANDED_HEIGHT = 900;
-
 const MIN_WIDTH = 420;
 const MIN_HEIGHT = 600;
 
@@ -29,6 +26,47 @@ const MAX_HEIGHT = 1200;
 let mainWindow = null;
 
 let taskSaveQueue = Promise.resolve();
+
+let displayMode = "glide";
+
+let miniWidgetActive = false;
+
+let normalWindowBounds = {
+    width: NORMAL_WIDTH,
+    height: NORMAL_HEIGHT
+};
+
+
+async function loadDisplayMode() {
+
+    const settingsPath =
+        path.join(
+            app.getPath("userData"),
+            "widget-settings.json"
+        );
+
+    try {
+
+        const settings = JSON.parse(
+            await fs.readFile(settingsPath, "utf8")
+        );
+
+        if (
+            settings.displayMode === "desktop" ||
+            settings.displayMode === "glide"
+        ) {
+            displayMode = settings.displayMode;
+        }
+
+    } catch (error) {
+
+        if (error.code !== "ENOENT") {
+            console.error("Could not load widget settings:", error);
+        }
+
+    }
+
+}
 
 
 // ============================================================
@@ -54,7 +92,7 @@ function createWindow() {
 
         resizable: true,
 
-        alwaysOnTop: true,
+        alwaysOnTop: displayMode === "glide",
 
         backgroundColor: "#08030f",
 
@@ -1259,7 +1297,13 @@ body::after {
 
     width: 100%;
 
-    height: 3px;
+    height: 5px;
+
+    cursor: pointer;
+
+    touch-action: none;
+
+    outline: none;
 
     border-radius: 20px;
 
@@ -1275,7 +1319,7 @@ body::after {
 
     height: 100%;
 
-    width: 36%;
+    width: 0%;
 
     border-radius: 20px;
 
@@ -1689,6 +1733,219 @@ body::after {
 }
 
 
+.mode-options {
+
+    display: flex;
+
+    gap: 7px;
+
+}
+
+
+.mode-option {
+
+    flex: 1;
+
+    min-height: 38px;
+
+    border: 1px solid rgba(255,255,255,0.10);
+
+    border-radius: 10px;
+
+    background: rgba(255,255,255,0.05);
+
+    color: #c8c2d0;
+
+    font: inherit;
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+}
+
+
+.mode-option[aria-pressed="true"] {
+
+    border-color: rgba(167,139,250,0.55);
+
+    background: rgba(124,58,237,0.22);
+
+    color: #ffffff;
+
+}
+
+
+.compact-widget-button {
+
+    width: 100%;
+
+    margin-top: 9px;
+
+    padding: 10px 12px;
+
+    border: 1px solid rgba(255,255,255,0.12);
+
+    border-radius: 10px;
+
+    background: rgba(255,255,255,0.07);
+
+    color: #ffffff;
+
+    font: inherit;
+
+    font-size: 12px;
+
+    cursor: pointer;
+
+}
+
+
+.mini-widget {
+
+    display: none;
+
+    position: fixed;
+
+    inset: 0;
+
+    padding: 4px;
+
+    flex-direction: column;
+
+    overflow: hidden;
+
+    border: 1px solid rgba(255,255,255,0.17);
+
+    border-radius: 12px;
+
+    background: linear-gradient(145deg, rgba(38,25,53,0.97), rgba(17,9,28,0.98));
+
+    box-shadow: 0 8px 25px rgba(0,0,0,0.38);
+
+}
+
+
+.mini-drag-region {
+
+    height: 10px;
+
+    flex-shrink: 0;
+
+    -webkit-app-region: drag;
+
+    cursor: move;
+
+}
+
+
+.mini-open-button {
+
+    min-height: 0;
+
+    width: 100%;
+
+    flex: 1;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: flex-start;
+
+    justify-content: center;
+
+    gap: 3px;
+
+    padding: 2px 5px 5px;
+
+    border: 0;
+
+    border-radius: 7px;
+
+    background: transparent;
+
+    color: #ffffff;
+
+    text-align: left;
+
+    cursor: pointer;
+
+    -webkit-app-region: no-drag;
+
+}
+
+
+.mini-clock {
+
+    font-size: 15px;
+
+    font-weight: 800;
+
+    line-height: 1;
+
+}
+
+
+.mini-priority {
+
+    width: 100%;
+
+    overflow: hidden;
+
+    color: #e5dcf3;
+
+    font-size: 10px;
+
+    line-height: 1.2;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+
+}
+
+
+.mini-task-count {
+
+    color: #b8a7e9;
+
+    font-size: 9px;
+
+    font-weight: 700;
+
+}
+
+
+body.mini-mode {
+
+    background: transparent !important;
+
+}
+
+
+body.mini-mode::before,
+body.mini-mode::after,
+body.mini-mode .app,
+body.mini-mode .drag-region,
+body.mini-mode .window-controls,
+body.mini-mode .settings,
+body.mini-mode .resize-handle {
+
+    display: none !important;
+
+}
+
+
+body.mini-mode .mini-widget {
+
+    display: flex;
+
+}
+
+
 /* ==========================================================
    RESIZE HANDLE
 ========================================================== */
@@ -1796,6 +2053,22 @@ body::after {
 
     <button
         class="window-button"
+        id="settingsButton"
+        title="Settings"
+    >
+        ⚙
+    </button>
+
+    <button
+        class="window-button"
+        id="miniWidgetButton"
+        title="Compact widget"
+    >
+        ▣
+    </button>
+
+    <button
+        class="window-button"
         id="minimizeButton"
         title="Minimize"
     >
@@ -1833,6 +2106,28 @@ body::after {
             id="settingsClose"
         >
             Done
+        </button>
+
+    </div>
+
+
+    <div class="setting">
+
+        <div class="setting-label">
+            WINDOW MODE
+        </div>
+
+        <div class="mode-options" role="group" aria-label="Window mode">
+            <button class="mode-option" id="desktopModeButton" aria-pressed="false">
+                Desktop only
+            </button>
+            <button class="mode-option" id="glideModeButton" aria-pressed="true">
+                Glide
+            </button>
+        </div>
+
+        <button class="compact-widget-button" id="compactWidgetButton">
+            Switch to 100 × 80 mini widget
         </button>
 
     </div>
@@ -2110,7 +2405,13 @@ body::after {
 
             <div class="progress">
 
-                <div class="progress-bar">
+                <div
+                    class="progress-bar"
+                    id="progressBar"
+                    role="slider"
+                    aria-label="Track progress"
+                    tabindex="0"
+                >
 
                     <div
                         class="progress-fill"
@@ -2212,6 +2513,16 @@ body::after {
 ></div>
 
 
+<div class="mini-widget" id="miniWidget">
+    <div class="mini-drag-region" title="Drag to move"></div>
+    <button class="mini-open-button" id="miniOpenButton" title="Open tasks">
+        <span class="mini-clock" id="miniClock">--:--</span>
+        <span class="mini-priority" id="miniPriority">No pending tasks</span>
+        <span class="mini-task-count" id="miniTaskCount">0 left</span>
+    </button>
+</div>
+
+
 <script>
 
 
@@ -2227,6 +2538,8 @@ let queuedMusicCommand = null;
 
 let ambientIndex = 0;
 
+let displayMode = "glide";
+
 // ============================================================
 // CLOCK
 // ============================================================
@@ -2240,6 +2553,12 @@ function updateClock() {
             hour: "numeric",
             minute: "2-digit",
             second: "2-digit"
+        }).format(now);
+
+    document.getElementById("miniClock").textContent =
+        new Intl.DateTimeFormat(undefined, {
+            hour: "numeric",
+            minute: "2-digit"
         }).format(now);
 
     document.getElementById("day").textContent =
@@ -2484,6 +2803,9 @@ function updateTasks() {
     ).textContent =
         remaining + " left";
 
+    document.getElementById("miniTaskCount").textContent =
+        remaining + (remaining === 1 ? " task left" : " tasks left");
+
 
     const firstPending = tasks.find(function(item) {
         return !item.completed;
@@ -2497,6 +2819,9 @@ function updateTasks() {
         ).textContent =
             firstPending.text;
 
+        document.getElementById("miniPriority").textContent =
+            firstPending.text;
+
     }
 
     else {
@@ -2505,6 +2830,9 @@ function updateTasks() {
             "priority"
         ).textContent =
             "No pending tasks. Add one below!";
+
+        document.getElementById("miniPriority").textContent =
+            "All caught up";
 
     }
 
@@ -2556,6 +2884,42 @@ document
         }
     );
 
+
+document
+    .getElementById("progressBar")
+    .addEventListener("click", function(event) {
+        const bounds = this.getBoundingClientRect();
+
+        if (bounds.width > 0) {
+            sendMusicCommand({
+                type: "seek",
+                ratio: (event.clientX - bounds.left) / bounds.width
+            });
+        }
+    });
+
+
+document
+    .getElementById("progressBar")
+    .addEventListener("keydown", function(event) {
+        if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+            return;
+        }
+
+        event.preventDefault();
+
+        const duration = Number(this.getAttribute("aria-valuemax")) || 0;
+        const current = Number(this.getAttribute("aria-valuenow")) || 0;
+        const change = duration * 0.05;
+
+        if (duration > 0) {
+            sendMusicCommand({
+                type: "seek",
+                ratio: (current + (event.key === "ArrowRight" ? change : -change)) / duration
+            });
+        }
+    });
+
 const youtubeMusic =
     document.getElementById(
         "youtubeMusic"
@@ -2594,6 +2958,15 @@ function sendMusicCommand(command) {
             event.args[0];
 
         if (!data) {
+            return;
+        }
+
+
+        if (data.type === "command-result" && !data.success) {
+            document.getElementById("musicStatus").textContent =
+                data.command === "next"
+                    ? "Next track control not found"
+                    : "Previous track control not found";
             return;
         }
 
@@ -2689,6 +3062,16 @@ function sendMusicCommand(command) {
             document.getElementById("totalTime").textContent =
                 duration > 0 ? formatMusicTime(duration) : "--:--";
 
+            const progressBar = document.getElementById("progressBar");
+            progressBar.setAttribute("aria-valuemin", "0");
+            progressBar.setAttribute("aria-valuemax", String(Math.max(0, duration)));
+            progressBar.setAttribute("aria-valuenow", String(Math.max(0, current)));
+            progressBar.setAttribute(
+                "aria-valuetext",
+                formatMusicTime(current) + " of " +
+                (duration > 0 ? formatMusicTime(duration) : "unknown duration")
+            );
+
 
             if (duration > 0) {
 
@@ -2734,18 +3117,6 @@ function expandMusic() {
 
     musicExpanded = true;
 
-    if (
-        window.electronAPI &&
-        window.electronAPI.resizeWindow
-    ) {
-
-        window.electronAPI.resizeWindow(
-            720,
-            900
-        );
-
-    }
-
 }
 
 function minimizeMusic() {
@@ -2764,18 +3135,6 @@ function minimizeMusic() {
     );
 
     musicExpanded = false;
-
-    if (
-        window.electronAPI &&
-        window.electronAPI.resizeWindow
-    ) {
-
-        window.electronAPI.resizeWindow(
-            520,
-            800
-        );
-
-    }
 
 }
 
@@ -2917,6 +3276,109 @@ const settingsPanel =
     document.getElementById(
         "settingsPanel"
     );
+
+
+function updateDisplayModeButtons(mode) {
+
+    displayMode = mode === "desktop" ? "desktop" : "glide";
+
+    document.getElementById("desktopModeButton")
+        .setAttribute("aria-pressed", String(displayMode === "desktop"));
+
+    document.getElementById("glideModeButton")
+        .setAttribute("aria-pressed", String(displayMode === "glide"));
+
+}
+
+
+function chooseDisplayMode(mode) {
+
+    updateDisplayModeButtons(mode);
+
+    if (window.electronAPI && window.electronAPI.setWindowMode) {
+        window.electronAPI.setWindowMode(displayMode)
+            .catch(function(error) {
+                console.error("Could not save window mode:", error);
+            });
+    }
+
+}
+
+
+function setMiniWidget(enabled) {
+
+    if (!window.electronAPI || !window.electronAPI.setMiniWidget) {
+        return;
+    }
+
+    window.electronAPI.setMiniWidget(enabled)
+        .then(function(success) {
+            if (success) {
+                if (enabled) {
+                    settingsPanel.classList.remove("open");
+                } else if (musicExpanded) {
+                    minimizeMusic();
+                }
+
+                document.body.classList.toggle("mini-mode", enabled);
+            }
+        })
+        .catch(function(error) {
+            console.error("Could not change widget size:", error);
+        });
+
+}
+
+
+if (window.electronAPI && window.electronAPI.getWindowMode) {
+    window.electronAPI.getWindowMode()
+        .then(updateDisplayModeButtons)
+        .catch(function(error) {
+            console.error("Could not load window mode:", error);
+        });
+}
+
+
+document
+    .getElementById("desktopModeButton")
+    .addEventListener("click", function() {
+        chooseDisplayMode("desktop");
+    });
+
+
+document
+    .getElementById("glideModeButton")
+    .addEventListener("click", function() {
+        chooseDisplayMode("glide");
+    });
+
+
+document
+    .getElementById("compactWidgetButton")
+    .addEventListener("click", function() {
+        setMiniWidget(true);
+    });
+
+
+document
+    .getElementById("miniWidgetButton")
+    .addEventListener("click", function() {
+        setMiniWidget(true);
+    });
+
+
+document
+    .getElementById("miniOpenButton")
+    .addEventListener("click", function() {
+        setMiniWidget(false);
+    });
+
+
+document
+    .getElementById("settingsButton")
+    .addEventListener("click", function() {
+        settingsPanel.classList.add("open");
+    });
 
 
 // Secret/simple settings trigger:
@@ -3273,6 +3735,95 @@ ipcMain.handle(
 );
 
 
+ipcMain.handle(
+    "get-window-mode",
+    function() {
+        return displayMode;
+    }
+);
+
+
+ipcMain.handle(
+    "set-window-mode",
+    async function(event, mode) {
+
+        if (mode !== "desktop" && mode !== "glide") {
+            return false;
+        }
+
+        displayMode = mode;
+
+        const win = BrowserWindow.fromWebContents(event.sender);
+
+        if (win) {
+            win.setAlwaysOnTop(miniWidgetActive || displayMode === "glide");
+        }
+
+        const settingsPath =
+            path.join(
+                app.getPath("userData"),
+                "widget-settings.json"
+            );
+
+        await fs.mkdir(path.dirname(settingsPath), { recursive: true });
+        await fs.writeFile(
+            settingsPath,
+            JSON.stringify({ displayMode: displayMode }, null, 2),
+            "utf8"
+        );
+
+        return true;
+
+    }
+);
+
+
+ipcMain.handle(
+    "set-mini-widget",
+    function(event, enabled) {
+
+        const win = BrowserWindow.fromWebContents(event.sender);
+
+        if (!win || typeof enabled !== "boolean") {
+            return false;
+        }
+
+        if (enabled && !miniWidgetActive) {
+
+            const bounds = win.getBounds();
+            normalWindowBounds = {
+                width: bounds.width,
+                height: bounds.height
+            };
+
+            miniWidgetActive = true;
+            win.setAlwaysOnTop(true);
+            win.setResizable(false);
+            win.setMinimumSize(100, 80);
+            win.setMaximumSize(100, 80);
+            win.setSize(100, 80, true);
+
+        } else if (!enabled && miniWidgetActive) {
+
+            miniWidgetActive = false;
+            win.setMinimumSize(MIN_WIDTH, MIN_HEIGHT);
+            win.setMaximumSize(MAX_WIDTH, MAX_HEIGHT);
+            win.setResizable(true);
+            win.setSize(
+                normalWindowBounds.width,
+                normalWindowBounds.height,
+                true
+            );
+            win.setAlwaysOnTop(displayMode === "glide");
+
+        }
+
+        return true;
+
+    }
+);
+
+
 // EXACT WINDOW RESIZE
 // ============================================================
 
@@ -3326,6 +3877,10 @@ ipcMain.on(
             height,
             true
         );
+
+        if (!miniWidgetActive) {
+            normalWindowBounds = { width: width, height: height };
+        }
 
     }
 );
@@ -3391,6 +3946,8 @@ ipcMain.on(
             height,
             true
         );
+
+        normalWindowBounds = { width: width, height: height };
 
     }
 );
@@ -3468,7 +4025,9 @@ ipcMain.on(
 // ============================================================
 
 app.whenReady().then(
-    function() {
+    async function() {
+
+        await loadDisplayMode();
 
         createWindow();
 

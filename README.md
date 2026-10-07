@@ -7,7 +7,10 @@ A small always-on-top desktop widget for keeping the current time, your next tas
 - Live local date and time, formatted using your system locale and timezone.
 - A task list that saves task text and completion state between launches.
 - A priority banner showing the first unfinished task.
-- An expandable YouTube Music player with play/pause, previous/next, artwork, and track progress.
+- An expandable YouTube Music player with play/pause, previous/next, artwork, and a seekable track tracker.
+- Desktop-only and always-on-top Glide modes.
+- A 100 x 80 compact task widget that stays above other windows and opens the full task list when clicked.
+- Music expansion that leaves the native window at its current resized dimensions.
 - A frameless, resizable window with a global show/hide shortcut (`Ctrl+Shift+D`, or `Command+Shift+D` on macOS).
 - Theme swatches and a custom background image.
 
@@ -24,6 +27,8 @@ npm start
 ```
 
 Click **Open YouTube Music** to expand the music page. Sign in and select a track there; the compact player controls then operate the current track. The YouTube Music service must be reachable, and playback availability is subject to Google's service and account requirements.
+
+Open Settings to choose **Desktop only** (normal window behavior) or **Glide** (stay above other windows). Use **Switch to 100 x 80 mini widget** for the compact overlay; click its task preview to restore the full widget. Expanding or minimizing YouTube Music does not change the window's size.
 
 ## Tasks and privacy
 
