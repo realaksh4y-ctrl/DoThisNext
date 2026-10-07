@@ -1,0 +1,12 @@
+{
+  "name": "do-this-next",
+  "version": "1.0.0",
+  "description": "A simple floating desktop to-do widget",
+  "main": "index.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^39.0.0"
+  }
+}
