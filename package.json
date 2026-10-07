@@ -1,7 +1,7 @@
 {
   "name": "do-this-next",
   "version": "1.0.0",
-  "description": "A simple floating desktop to-do widget",
+  "description": "A vibe-coded floating Electron desktop widget for tasks, local time, and YouTube Music",
   "main": "index.js",
   "scripts": {
     "start": "electron ."

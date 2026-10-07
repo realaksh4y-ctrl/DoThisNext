@@ -1,6 +1,6 @@
 # Do This Next
 
-A small always-on-top desktop widget for keeping the current time, your next task, and YouTube Music in one place.
+A vibe-coded floating Electron desktop widget for tasks, local time, and YouTube Music.
 
 ## Features
 
